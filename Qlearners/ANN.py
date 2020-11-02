@@ -1,0 +1,123 @@
+"""
+ANN class for Q-function approximation
+"""
+
+import functools
+import torch
+import torch.nn as nn
+from torch import Tensor, LongTensor, optim
+import Qlearners.scg as scg
+
+class Net(nn.Module):
+    """
+    A totally over-built ANN class.
+    """
+    def __init__( self, M_I , M_H ,
+                  M_H_Q=[] , M_F_O=0 ,
+                  scgI=20 ,
+                  noQonShared=False ):
+        super(Net, self).__init__()
+        self.M_I_Q = M_I ; self.M_H = M_H ; self.M_H_Q = M_H_Q ;
+        self.Qlayers = []; self.Flayers = [];
+        self._scgI = scgI
+        self.noQonShared = noQonShared
+        # create shared hidden layers
+        self.h0 = nn.Linear(self.M_I_Q,self.M_H[0])
+        if not self.noQonShared:
+            self.Qlayers += ["h0"]
+        self.Flayers += ["h0"]
+        for li in range(1,len(self.M_H)):
+            attrName = "h"+str(li)
+            setattr(self, attrName,
+                    nn.Linear(self.M_H[li-1],self.M_H[li]))
+            if not self.noQonShared:
+                self.Qlayers += [attrName]
+            self.Flayers += [attrName]
+        # create Q-learning hidden layers
+        if self.M_H_Q:
+            self.qh0 = nn.Linear(self.M_H[-1],self.M_H_Q[0])
+            self.Qlayers += ["qh0"]
+            for li in range(1,len(self.M_H_Q)):
+                attrName = "qh"+str(li)
+                setattr(self, attrName,
+                        nn.Linear(self.M_H_Q[li-1],self.M_H_Q[li]))
+                self.Qlayers += [attrName]
+        # create Q-learning output layer
+        if self.M_H_Q:
+            self.qout = nn.Linear(self.M_H_Q[-1],1)
+        else:
+            self.qout = nn.Linear(self.M_H[-1],1)
+        self.Qlayers += ["qout"]
+        # create forward model output layer
+        self.fout = nn.Linear(self.M_H[-1],M_F_O)
+        self.Flayers += ["fout"]
+        
+    def compute_Q( self , x ):
+        x = torch.tensor( x , dtype=torch.float , requires_grad=False )
+        Q = self.forward_Q( x , grad_p=False )
+        return Q.numpy()
+
+    def forward_Q( self , x , grad_p=True):
+        with torch.set_grad_enabled( grad_p ):
+            for li in range(len(self.M_H)):
+                layer = getattr(self,"h"+str(li))
+                x = torch.tanh(layer(x))
+            for li in range(len(self.M_H_Q)):
+                layer = getattr(self,"qh"+str(li))
+                x = torch.tanh(layer(x))
+            x = self.qout(x)
+        return x
+
+    # def forward_F(self, x):
+    #     for li in range(len(self.M_H)):
+    #         layer = getattr(self,"h"+str(li))
+    #         x = torch.tanh(layer(x))
+    #     x = torch.tanh(self.fout(x))
+    #     return x
+
+    def _Q_parameters(self):
+        return iter(functools.reduce(lambda x,y: x+y, [list(mod.parameters()) for name,mod in self.named_children() if name in self.Qlayers]))
+
+    def turnOff_H_updates(self):
+        if self.M_H:
+            for li in range(0,len(self.M_H)):            
+                layer = getattr(self,"h"+str(li))
+                for param in layer.parameters():
+                    param.requires_grad = False
+
+
+    def update( self , state_action_in , targets_in , alg="scg" ):
+
+        # TODO: check inputs
+
+        N_in , M_in = state_action_in.shape
+        N_out , M_out = targets_in.shape
+        
+        if alg=="scg":
+            self._update_scg( state_action_in , targets_in , self._scgI )
+        else:
+            print( "Unknown ANN update algorithm." )
+            exit
+
+    def _update_scg( self , state_action_in , targets_in , num_scg_iters):
+
+        #
+        # define closure needed by scg
+        #
+        def closure(grad=False):
+            tmpOut = self.forward_Q( torch.tensor( state_action_in , dtype=torch.float , requires_grad=grad ) , grad_p=grad )
+            delta = tmpOut.clone()
+            delta.sub_( torch.tensor( targets_in , dtype=torch.float ) )
+            err = delta.pow(2.)
+            err = 0.5 * torch.mean(err)
+            if grad:
+                delta.div_(tmpOut.size()[0]-1)
+                self.zero_grad()
+                tmpOut.backward(gradient=delta)
+            return err
+        #
+        # run SCG for the specified number of iterations
+        # 
+        optimizer = scg.SCG(self._Q_parameters())
+        for scgi in range(num_scg_iters):
+            step_p = optimizer.step(closure=closure)
