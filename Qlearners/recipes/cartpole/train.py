@@ -12,7 +12,7 @@ parser.add_argument( "--gamma", type=float, default=0.9)
 parser.add_argument( "--rerunNum", type=int)
 parser.add_argument( "--numReplays", type=int, default=5)
 parser.add_argument( "--episode_len", type=int, default=1000)
-parser.add_argument( "--episodes_max", type=int, default=2000)
+parser.add_argument( "--episodes_max", type=int, default=200)
 parser.add_argument( "--batch_size", type=int, default=1000)
 parser.add_argument( "--graph",action="store_true", default=False)
 parser.add_argument( "--saveEvalHist",action="store_true", default=False)
@@ -44,7 +44,6 @@ eval_startPos = [0]                  # start eval in middle only
 eval_startAngles = [-math.pi,0.0]    # start eval on up and down positions respectively
 eval_r_hist = [[] for i in range(len(eval_startPos)*len(eval_startAngles))]
 actionDuration = 2
-evalFreq = 5
 
 #
 # method to scale the function appoximator inputs
@@ -87,11 +86,11 @@ get_domain.cpdomain = cartpole.CartPole()
 # initialize Q-learning agent
 #
 
-def advance_environment_f( selected_action , domain ):
+def advance_environment_f( selected_action_idx , domain ):
 
     # move simulation forward, get new state, scale state, return scaled state
     for ai in range(actionDuration):
-        domain.act( selected_action[0] )
+        domain.act( selected_action[selected_action_idx][0] )
     (x,xdot,a,adot) = domain.sense()
     # compute reward
     reward = reinforcement( a )

@@ -1,7 +1,6 @@
 # TODO: remove _Q_approx init from Qlearner.  let's do this outside the class
 # TODO: allow epsilon to change
 # TODO: epsilon decay
-# TODO: what is the point of the init_f parameter to generate_episode?
 # TODO: remove num_updates parameter from learn method?
 # TODO: add ability to send a list of parameters to the Q-func approximator via the learn method
 
@@ -42,7 +41,7 @@ class Qlearner:
 
             # compute q-value for each action
             qvals = np.zeros( len(self._actions) )
-            net_in = np.append( state_in , np.zeros( ( 1 , self._M_I_actions ) ) , axis=1 ) # add element for action
+            net_in = np.append( state_in , np.zeros( ( 1 , self._M_I_actions ) ) , axis=1 ) # add elements for action
             for ai,a in enumerate( self._actions ):
                 net_in[ 0, self._M_I_state: ] = self._actions[ ai ]
                 Qout = self._Q_approx.compute_Q( net_in )
@@ -69,11 +68,14 @@ class Qlearner:
             # select action
             current_action , current_action_idx = self.select_action( current_state , epsilon=epsilon )
             # advance simulation
-            (next_state , current_reward , finished_p) = step_f( self._actions[ current_action_idx ] )
+            (next_state , current_reward , finished_p) = step_f( current_action_idx )
             # add to episode memory
             episode += [ {"s":current_state , "ai":current_action_idx , "r":current_reward , "snext":next_state } ]
             # advance to the next state
             current_state = next_state
+            # exit if episode is finished
+            if finished_p:
+                break
 
         return episode
 
@@ -90,7 +92,8 @@ class Qlearner:
         """
         # 
         # input data
-        # 
+        #
+        batch_size = min( batch_size , len( self._replay_memory ) )
         input_data = np.zeros( (batch_size , self._M_I ) )
         # store the states in the inputs
         selected_memories = random.sample( self._replay_memory , batch_size )
@@ -110,7 +113,7 @@ class Qlearner:
         input_data_Qnext[ : , :self._M_I_state ] = np.concatenate( [ sm["snext"] for sm in selected_memories ] , axis=0 )
         Qvals_next = np.zeros( ( batch_size , len(self._actions) ) )
         for ai in range( len(self._actions) ):
-            input_data_Qnext[ : , self._M_I_state: ] = np.expand_dims( np.repeat( np.array( self._actions[ai] ) , repeats=batch_size , axis=0 ) , axis=1 )
+            input_data_Qnext[ : , self._M_I_state: ] = np.repeat( np.expand_dims( np.array( self._actions[ai] ) , axis=0 ) , repeats=batch_size , axis=0 )
             Qvals_next[ : , ai:ai+1 ] = self._Q_approx.compute_Q( input_data_Qnext )
 
         max_Qvals_next = np.expand_dims( np.max( Qvals_next , axis = 1 ) , axis = 1 )
