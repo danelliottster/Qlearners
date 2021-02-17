@@ -3,16 +3,17 @@ import Qlearners.recipes.cartpole.cartpolebox2d as cartpole
 import matplotlib.pyplot as plt
 import numpy as np
 import Qlearners.Qlearner as ql
+import Qlearners.ANN as ANN
 
 parser = argparse.ArgumentParser()
 parser.add_argument( "-v", action="store_true", default=False, help="not implemented")
 parser.add_argument( "--M_H", nargs="+", type=int, default=[20,20])
-parser.add_argument( "--scgI", type=int, default=20)
+parser.add_argument( "--lr", type=int, default=0.001 )
 parser.add_argument( "--gamma", type=float, default=0.9)
 parser.add_argument( "--rerunNum", type=int)
 parser.add_argument( "--numReplays", type=int, default=5)
 parser.add_argument( "--episode_len", type=int, default=1000)
-parser.add_argument( "--episodes_max", type=int, default=200)
+parser.add_argument( "--episodes_max", type=int, default=2000)
 parser.add_argument( "--batch_size", type=int, default=1000)
 parser.add_argument( "--graph",action="store_true", default=False)
 parser.add_argument( "--saveEvalHist",action="store_true", default=False)
@@ -90,7 +91,7 @@ def advance_environment_f( selected_action_idx , domain ):
 
     # move simulation forward, get new state, scale state, return scaled state
     for ai in range(actionDuration):
-        domain.act( selected_action[selected_action_idx][0] )
+        domain.act( actions[selected_action_idx][0] )
     (x,xdot,a,adot) = domain.sense()
     # compute reward
     reward = reinforcement( a )
@@ -120,7 +121,8 @@ def reset_domain_eval_f( domain ):
     return state_vec
 
 
-agent = ql.Qlearner( 4 , actions , args.M_H , gamma=args.gamma )
+Q_approx = ANN.Net( 5 , args.M_H , alg='sgd' , alg_params={'lr':args.lr} )
+agent = ql.Qlearner( Q_approx , actions , 4 , gamma=args.gamma )
 
 # 
 # ####################

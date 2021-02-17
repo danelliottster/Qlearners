@@ -14,13 +14,13 @@ class Net(nn.Module):
     """
     def __init__( self, M_I , M_H ,
                   M_H_Q=[] , M_F_O=0 ,
-                  scgI=20 ,
+                  alg = 'scg' , alg_params={'scgI':20} ,
                   noQonShared=False ):
         super(Net, self).__init__()
         self.M_I_Q = M_I ; self.M_H = M_H ; self.M_H_Q = M_H_Q ;
         self.Qlayers = []; self.Flayers = [];
-        self._scgI = scgI
         self.noQonShared = noQonShared
+        self._alg = alg ; self._alg_params = alg_params ;
         # create shared hidden layers
         self.h0 = nn.Linear(self.M_I_Q,self.M_H[0])
         if not self.noQonShared:
@@ -51,6 +51,13 @@ class Net(nn.Module):
         # create forward model output layer
         self.fout = nn.Linear(self.M_H[-1],M_F_O)
         self.Flayers += ["fout"]
+
+        # create optimizer
+        self._optimizer = None
+        if self._alg == 'adam':
+            self._optimizer = torch.optim.Adam( self._Q_parameters() )
+        if self._alg == 'sgd':
+            self._optimizer = torch.optim.SGD( self._Q_parameters() , lr=self._alg_params['lr'] )
         
     def compute_Q( self , x ):
         x = torch.tensor( x , dtype=torch.float , requires_grad=False )
@@ -86,16 +93,29 @@ class Net(nn.Module):
                     param.requires_grad = False
 
 
-    def update( self , state_action_in , targets_in , alg="scg" ):
+    def update( self , state_action_in , targets_in ):
 
-        # TODO: check inputs
+        # TODO: add code to check inputs
+
 
         N_in , M_in = state_action_in.shape
         N_out , M_out = targets_in.shape
         
-        if alg=="scg":
-            self._update_scg( state_action_in , targets_in , self._scgI )
+        if self._alg=='scg':
+
+            self._update_scg( state_action_in , targets_in , self._alg_params['scgI'] )
+
+        elif self._alg in ( 'adam' , 'sgd' ):
+
+            targets_in_tensor = torch.tensor( targets_in , dtype=torch.float )
+            tmpOut = self.forward_Q( torch.tensor( state_action_in , dtype=torch.float , requires_grad=True ) , grad_p=True )
+            loss_f = torch.nn.MSELoss( reduction='mean' )
+            loss = loss_f( tmpOut , targets_in_tensor )
+            loss.backward()
+            self._optimizer.step()
+
         else:
+
             print( "Unknown ANN update algorithm." )
             exit
 
@@ -118,6 +138,6 @@ class Net(nn.Module):
         #
         # run SCG for the specified number of iterations
         # 
-        optimizer = scg.SCG(self._Q_parameters())
+        optimizer = scg.SCG( self._Q_parameters() )
         for scgi in range(num_scg_iters):
             step_p = optimizer.step(closure=closure)

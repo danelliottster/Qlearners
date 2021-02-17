@@ -14,10 +14,9 @@ class Qlearner:
     The plan is to make this class increasingly abstract as we add more varieties of Q-learning
     """
 
-    def __init__( self , M_I_state , actions , M_H , gamma=0.9):
+    def __init__( self , Q_approx , actions , M_I_state , gamma=0.9):
         
         self._replay_memory = []
-        self._Q_approx = None
         self._actions = actions
 
         self._gamma = gamma
@@ -25,13 +24,8 @@ class Qlearner:
         self._M_I_state = M_I_state
         self._M_I_actions = len(self._actions[0])
         self._M_I = self._M_I_state + self._M_I_actions
-        self._M_H = M_H
 
-        self._Q_approx = self.allocate_ANN()
-
-    def allocate_ANN(self):
-
-        return ANN.Net( self._M_I , self._M_H , [] )
+        self._Q_approx = Q_approx
 
     def select_action( self , state_in , epsilon=None ):
 
