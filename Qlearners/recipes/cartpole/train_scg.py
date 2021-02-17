@@ -6,7 +6,7 @@ import Qlearners.Qlearner as ql
 import Qlearners.ANN as ANN
 
 
-def main( args ):
+def main( M_H , scgI , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength ):
 
     actions = ( [-1.0] , [0.0] , [1.0] )
 
@@ -101,8 +101,8 @@ def main( args ):
         return state_vec
 
 
-    Q_approx = ANN.Net( 5 , args.M_H , alg='scg' , alg_params={'scgI':args.scgI} )
-    agent = ql.Qlearner( Q_approx , actions , 4 , gamma=args.gamma )
+    Q_approx = ANN.Net( 5 , M_H , alg='scg' , alg_params={'scgI':scgI} )
+    agent = ql.Qlearner( Q_approx , actions , 4 , gamma=gamma )
 
     # 
     # ####################
@@ -112,18 +112,18 @@ def main( args ):
     # 
 
     episode_i = 0 ; train_r_hist = [] ; eval_r_hist = [] ;
-    while episode_i < args.episodes_max:
+    while episode_i < episodes_max:
 
-        episode = agent.generate_episode( args.episode_len ,
+        episode = agent.generate_episode( episode_len ,
                                           step_f = lambda sa: advance_environment_f(sa , get_domain() ) ,
                                           init_f = reset_domain_f ,
                                           epsilon = 0.1 )
         agent.add_to_memory( episode )
-        agent.learn( num_updates=args.numReplays , batch_size=args.batch_size )
+        agent.learn( num_updates=numReplays , batch_size=batch_size )
 
 
         eval_domain = cartpole.CartPole()
-        eval_episode = agent.generate_episode( args.evalLength ,
+        eval_episode = agent.generate_episode( evalLength ,
                                                step_f = lambda sa: advance_environment_f( sa , eval_domain ) ,
                                                init_f = lambda: reset_domain_eval_f( eval_domain ) ,
                                                epsilon = None )
@@ -139,7 +139,7 @@ def main( args ):
     # 
     # ####################
 
-    return eval_r_hist , train_r_histx
+    return eval_r_hist , train_r_hist
 
 if __name__ == '__main__':
 
@@ -159,7 +159,9 @@ if __name__ == '__main__':
     parser.add_argument( "--savePrefix")
     args = parser.parse_args()
 
-    main( M_H=args.M_H , scgI=args.scgI , gamma=args.gamma , numReplays=args.numReplays )
+    main( M_H=args.M_H , scgI=args.scgI , gamma=args.gamma , numReplays=args.numReplays ,
+          episodes_max=args.episodes_max , episode_len=args.episode_len ,
+          batch_size=args.batch_size , evalLength=args.evalLength )
 
     if args.saveEvalHist:
         saveEvalFile = tempfile.NamedTemporaryFile(mode="w",delete=False,
