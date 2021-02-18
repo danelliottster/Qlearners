@@ -1,12 +1,7 @@
-import argparse , math
-import Qlearners.recipes.cartpole.cartpolebox2d as cartpole
-import matplotlib.pyplot as plt
-import numpy as np
-import Qlearners.Qlearner as ql
-import Qlearners.ANN as ANN
+import Qlearners.epsilon_decay as ep_decay
 
 
-def main( M_H , scgI , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength ):
+def main( M_H , alg_name , alg_params , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 ):
 
     actions = ( [-1.0] , [0.0] , [1.0] )
 
@@ -101,7 +96,7 @@ def main( M_H , scgI , gamma , numReplays , episodes_max , episode_len , batch_s
         return state_vec
 
 
-    Q_approx = ANN.Net( 5 , M_H , alg='scg' , alg_params={'scgI':scgI} )
+    Q_approx = ANN.Net( 5 , M_H , alg=alg_name , alg_params=alg_params )
     agent = ql.Qlearner( Q_approx , actions , 4 , gamma=gamma )
 
     # 
@@ -114,10 +109,12 @@ def main( M_H , scgI , gamma , numReplays , episodes_max , episode_len , batch_s
     episode_i = 0 ; train_r_hist = [] ; eval_r_hist = [] ;
     while episode_i < episodes_max:
 
+        print( 'epsilon='  , epsilon )
         episode = agent.generate_episode( episode_len ,
                                           step_f = lambda sa: advance_environment_f(sa , get_domain() ) ,
                                           init_f = reset_domain_f ,
                                           epsilon = 0.1 )
+        epsilon = ep_decay.decay( epsilon , epsilon_decay , epsilon_min )
         agent.add_to_memory( episode )
         agent.learn( num_updates=numReplays , batch_size=batch_size )
 
@@ -141,12 +138,21 @@ def main( M_H , scgI , gamma , numReplays , episodes_max , episode_len , batch_s
 
     return eval_r_hist , train_r_hist
 
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument( "-v", action="store_true", default=False, help="not implemented")
+    parser.add_argument( "--alg" , default="scg" )
     parser.add_argument( "--M_H", nargs="+", type=int, default=[20,20])
     parser.add_argument( "--scgI", type=int, default=20)
+    parser.add_argument( "--lr", type=float, default=0.0001)
+    parser.add_argument( "--beta1", type=float, default=0.9)
+    parser.add_argument( "--beta2", type=float, default=0.999)
+    parser.add_argument( "--adam_eps", type=float, default=pow(10,-8) )
+    parser.add_argument( "--epsilon", type=float, default=0.1 )
+    parser.add_argument( "--epsilon_decay", type=float, default=1. ) # no decay
+    parser.add_argument( "--epsilon_min", type=float, default=0.1 )
     parser.add_argument( "--gamma", type=float, default=0.9)
     parser.add_argument( "--numReplays", type=int, default=5)
     parser.add_argument( "--episode_len", type=int, default=1000)
@@ -159,9 +165,27 @@ if __name__ == '__main__':
     parser.add_argument( "--savePrefix")
     args = parser.parse_args()
 
-    main( M_H=args.M_H , scgI=args.scgI , gamma=args.gamma , numReplays=args.numReplays ,
-          episodes_max=args.episodes_max , episode_len=args.episode_len ,
-          batch_size=args.batch_size , evalLength=args.evalLength )
+    if args.alg == 'scg':
+
+        alg_name = 'scg'
+        alg_params = { 'scgI' : args.scgI }
+
+    elif args.alg == 'adam':
+
+        alg_name = 'adam'
+        alg_params = { 'alpha' : args.lr ,
+                       'beta1' : args.beta1 , 'beta2' : args.beta2 ,
+                       'epsilon': args.adam_eps }
+
+    elif args.alg == 'sgd':
+
+        alg_name = 'sgd'
+        alg_params = { 'lr' : args.lr }
+
+    main( M_H=args.M_H , alg_name=alg_name , alg_params=alg_params , gamma=args.gamma ,
+          numReplays=args.numReplays , episodes_max=args.episodes_max , episode_len=args.episode_len ,
+          batch_size=args.batch_size , evalLength=args.evalLength ,
+          epsilon=args.epsilon , epsilon_decay=args.epsilon_decay , epsilon_min=0.1 )
 
     if args.saveEvalHist:
         saveEvalFile = tempfile.NamedTemporaryFile(mode="w",delete=False,
