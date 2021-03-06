@@ -1,16 +1,19 @@
+import argparse , math
+import gym
+import numpy as np
+import Qlearners.Qlearner as ql
 import Qlearners.epsilon_decay as ep_decay
-
+import Qlearners.recipes.cartpole.cartpolebox2d as cartpole
+import Qlearners.ANN as ANN
 
 def main( M_H , alg_name , alg_params , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 ):
 
     actions = ( [-1.0] , [0.0] , [1.0] )
 
-    #
-    # prepare plotting
-    #
-
-
-    plt.ion(); firstGraph=True;
+    # #
+    # # prepare plotting
+    # #
+    # plt.ion(); firstGraph=True;
 
     #
     # setup some constant parameters
