@@ -6,7 +6,7 @@ import Qlearners.epsilon_decay as ep_decay
 import Qlearners.recipes.cartpole.cartpolebox2d as cartpole
 import Qlearners.ANN as ANN
 
-def main( M_H , alg_name , alg_params , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 ):
+def main( M_H , alg_name , alg_params , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 , post_ep_f=None ):
 
     actions = ( [-1.0] , [0.0] , [1.0] )
 
@@ -129,11 +129,18 @@ def main( M_H , alg_name , alg_params , gamma , numReplays , episodes_max , epis
                                                epsilon = None )
 
         eval_sum_r = np.sum( [ ee["r"] for ee in eval_episode ] )
+        train_sum_r = np.sum( [ te["r"] for te in episode ] )
 
         print( "episode" , episode_i , "eval reward=" , eval_sum_r )
 
         train_r_hist += np.sum( [ ee["r"] for ee in episode ] )
         eval_r_hist += np.sum( [ ee["r"] for ee in episode ] )
+
+        # execute the post-episode hook
+        if post_ep_f:
+            post_ep_f( locals() )
+
+        # the episode has concluded
         episode_i += 1
     
     # 
