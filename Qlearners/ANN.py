@@ -1,5 +1,6 @@
 """
 ANN class for Q-function approximation
+Has the pieces of more advanced functionality such as the ability to only update certain layers or have a forward model and a Q-function model.
 """
 
 import functools
@@ -64,7 +65,7 @@ class Net(nn.Module):
         Q = self.forward_Q( x , grad_p=False )
         return Q.numpy()
 
-    def forward_Q( self , x , grad_p=True):
+    def forward_Q( self , x , grad_p=True ):
         with torch.set_grad_enabled( grad_p ):
             for li in range(len(self.M_H)):
                 layer = getattr(self,"h"+str(li))

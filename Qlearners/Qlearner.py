@@ -1,13 +1,8 @@
-# TODO: remove _Q_approx init from Qlearner.  let's do this outside the class
-# TODO: allow epsilon to change
-# TODO: epsilon decay
 # TODO: remove num_updates parameter from learn method?
 # TODO: add ability to send a list of parameters to the Q-func approximator via the learn method
 
 import random, tempfile, uuid
 import numpy as np
-
-import Qlearners.ANN as ANN
 
 class Qlearner:
     """
