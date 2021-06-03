@@ -10,7 +10,7 @@ from torch import Tensor, LongTensor, optim
 
 class Net( nn.Module ) :
 
-    def __init__( self , M_I , M_H , M_O , lr ) :
+    def __init__( self , M_I , M_H , M_O , lr , momentum=None) :
 
         super( Net , self ).__init__()
         self.M_I = M_I
@@ -25,7 +25,11 @@ class Net( nn.Module ) :
         self.hidden_layers = nn.Sequential( hidden_layers )
         self.output = nn.Linear( self.M_H[-1] , self.M_O )
 
-        self._optimizer = optim.SGD( self.parameters() , lr=lr )
+        if momentum :
+            self._optimizer = optim.SGD( self.parameters() , lr=lr , momentum=momentum )
+        else :
+            self._optimizer = optim.SGD( self.parameters() , lr=lr )
+            
         self._criterion = nn.MSELoss()
 
     def forward( self , x , grad_p ) :
@@ -43,6 +47,7 @@ class Net( nn.Module ) :
 
     def update( self , X , T ) :
 
+        self._optimizer.zero_grad()
         X_torch = torch.tensor( X , dtype=torch.float )
         T_torch = torch.tensor( T , dtype=torch.float )
         Y = self.forward( X , True)

@@ -14,6 +14,7 @@ EPSILON_DECAY_RATE = 0.99
 MIN_EPSILON = 0.1
 NUM_REPLAYS_PER_UPDATE = 1
 BATCH_SIZE = 100
+RENDER_EVAL_P = False
 
 
 domain = gym.make('CartPole-v0')
@@ -35,7 +36,7 @@ def reset_domain_f():
 
     return np.expand_dims( domain.reset() , axis=0 )
 
-Q_approx = ANN.Net( M_state+M_act , M_H , 1 , LR )
+Q_approx = ANN.Net( M_state+M_act , M_H , 1 , LR , momentum=0.9 )
 
 agent = ql.Qlearner( Q_approx , available_actions , M_state , gamma=GAMMA )
 
@@ -54,7 +55,7 @@ for episode_i in range( NUM_EPISODES ) :
     epsilon = epsilon_decay.decay( epsilon , EPSILON_DECAY_RATE , MIN_EPSILON )
 
     eval_episode = agent.generate_episode( EVAL_EPISODE_LEN ,
-                                           step_f = lambda x: advance_environment_f(x,render_p=(episode_i%25==0) ) ,
+                                           step_f = lambda x: advance_environment_f(x,render_p=RENDER_EVAL_P and ( episode_i % 25 == 0 ) ) ,
                                            init_f = reset_domain_f ,
                                            epsilon = 0.0 )
 
