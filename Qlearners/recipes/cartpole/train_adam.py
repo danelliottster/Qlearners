@@ -28,7 +28,9 @@ class Net( nn.Module ) :
         self.hidden_layers = nn.Sequential( hidden_layers )
         self.output = nn.Linear( self.M_H[-1] , self.M_O )
 
-        self._optimizer = optim.Adam( self.parameters() , lr=lr )
+        self._optimizer = optim.Adam( self.parameters() , lr=lr ,
+                                      betas=[adam_beta1,adam_beta2] ,
+                                      eps=adam_epsilon )
         self._criterion = nn.MSELoss( reduction='sum' )
 
     def forward( self , x , grad_p ) :
@@ -54,8 +56,7 @@ class Net( nn.Module ) :
         loss.backward()
         self._optimizer.step()
 
-# TODO: add these parameters: adam_epsilon , adam_beta1 , adam_beta2
-def main( M_H , lr , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 ) :
+def main( M_H , lr , adam_epsilon , adam_beta1 , adam_beta2 , gamma , numReplays , episodes_max , episode_len , batch_size , evalLength , epsilon , epsilon_decay=1.0 , epsilon_min=0.1 , post_ep_hook=None ) :
 
     actions = ( [-1.0] , [0.0] , [1.0] )
 
@@ -149,7 +150,7 @@ def main( M_H , lr , gamma , numReplays , episodes_max , episode_len , batch_siz
         return state_vec
 
 
-    Q_approx = Net(  M_H , lr=lr )
+    Q_approx = Net(  M_H , lr , adam_epsilon , adam_beta1 , adam_beta2 )
     agent = ql.Qlearner( Q_approx , actions , 4 , gamma=gamma )
 
     # 
@@ -186,6 +187,10 @@ def main( M_H , lr , gamma , numReplays , episodes_max , episode_len , batch_siz
         train_r_hist += np.sum( [ ee["r"] for ee in episode ] )
         eval_r_hist += np.sum( [ ee["r"] for ee in episode ] )
 
+        # execute the post-episode hook
+        if post_ep_hook:
+            post_ep_hook( locals() )
+
         # the episode has concluded
         episode_i += 1
     
@@ -220,7 +225,9 @@ if __name__ == '__main__':
     parser.add_argument( "--savePrefix")
     args = parser.parse_args()
 
-    main( M_H=args.M_H , lr=args.lr , gamma=args.gamma ,
+    main( M_H=args.M_H , lr=args.lr ,
+          adam_epsilon=args.adam_eps , adam_beta1=args.beta1 , adam_beta2=args.beta2 ,
+          gamma=args.gamma ,
           numReplays=args.numReplays , episodes_max=args.episodes_max , episode_len=args.episode_len ,
           batch_size=args.batch_size , evalLength=args.evalLength ,
           epsilon=args.epsilon , epsilon_decay=args.epsilon_decay , epsilon_min=0.1 )
