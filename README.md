@@ -21,7 +21,6 @@ The purpose of this repository is to provide meaninful baselines for a variety r
    </tr>
    <tr>
       <td> SGD with feedforward ANN </td>
-      <td> Adam with feedforward ANN </td>
    </tr>
    <tr>
       <td> <h2> <b> Colorado State Univ cartpole swing-up and balance task </b> </h2> </td>
@@ -33,6 +32,10 @@ The purpose of this repository is to provide meaninful baselines for a variety r
       <td> <h4> Agent description </h4> </td>
       <td> <h4> Representative parameters </h4> </td>
       <td> <h4> Mean performance accross thirty agents </h4> </td>
+   </tr>
+   <tr>
+      <td> SGD with feedforward ANN </td>
+      <td> Adam with feedforward ANN </td>
    </tr>
    
 </table>
