@@ -21,7 +21,7 @@ The purpose of this repository is to provide meaninful baselines for a variety r
    </tr>
    <tr>
       <td> SGD with feedforward ANN </td>
-      <td> blah blah blah </td>
+      <td> Adam with feedforward ANN </td>
    </tr>
    <tr>
       <td> <h2> <b> Colorado State Univ cartpole swing-up and balance task </b> </h2> </td>
