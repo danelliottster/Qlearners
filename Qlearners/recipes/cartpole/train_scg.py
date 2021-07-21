@@ -1,5 +1,4 @@
 import argparse , math
-import gym
 import numpy as np
 import Qlearners.Qlearner as ql
 import Qlearners.epsilon_decay as ep_decay

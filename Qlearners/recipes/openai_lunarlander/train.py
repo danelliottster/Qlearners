@@ -37,9 +37,9 @@ def main( args ):
 
         return np.expand_dims( domain.reset() , axis=0 )
 
-    Q_approx = ANN.Net( 8 , args.M_H , [] , alg='scg' , alg_params={'scgI':20} )
+    Q_approx = ANN.Net( 11 , args.M_H , [] , alg='scg' , alg_params={'scgI':20} )
 
-    agent = ql.Qlearner( Q_approx , available_actions , gamma=args.gamma )
+    agent = ql.Qlearner( Q_approx , available_actions , 8, gamma=args.gamma )
 
     #
     # ####################
@@ -52,7 +52,7 @@ def main( args ):
     epsilon = args.epsilon
     while episode_i < args.episodes_max:
 
-        epsilon = epsilon_decay.epsilon_decay( epsilon , args.epsilon_decay_rate , args.min_epsilon )
+        epsilon = epsilon_decay.decay( epsilon , args.epsilon_decay_rate , args.min_epsilon )
 
         episode = agent.generate_episode( args.episode_max_len ,
                                           step_f = advance_environment_f ,

@@ -59,7 +59,7 @@ class Qlearner:
             # advance simulation
             (next_state , current_reward , finished_p) = step_f( current_action_idx )
             # add to episode memory
-            episode += [ {"s":current_state , "ai":current_action_idx , "r":current_reward , "snext":next_state } ]
+            episode += [ {"s":current_state , "ai":current_action_idx , "r":current_reward , "snext":next_state , 'finished':finished_p } ]
             # advance to the next state
             current_state = next_state
             # exit if episode is finished
