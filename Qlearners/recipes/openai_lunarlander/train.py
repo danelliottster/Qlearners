@@ -8,6 +8,8 @@ import Qlearners.ANN as ANN
 
 def main( args ):
 
+    print( args )
+
     if args.saveEvalHist:
         saveEvalFile = tempfile.NamedTemporaryFile(mode="w",delete=False,
                                                    dir=args.saveDir,
